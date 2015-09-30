@@ -53,8 +53,8 @@ public class ClientController {
 			System.out.println("Sorry, your input is invalid, please try again.");
 			return null;
 		} else if (false == Util.isMovable(player.getPos(), move, Maze.get().getSize()) ) {
-			System.out.printf("player position :%d,%d  maze.size:%d",player.getPos().getX(),player.getPos().getY(),Maze.get().getSize());
 			System.out.println("Sorry, you have reached the boundary, please try again.");
+			System.out.printf("player position :%d,%d  maze.size:%d\n",player.getPos().getX(),player.getPos().getY(),Maze.get().getSize());
 			return null;
 		}
 		Position currentPos = new Position(player.getPos().getX(), player.getPos().getY());
@@ -134,18 +134,21 @@ public class ClientController {
 			return;
 		}
 		try {
+			System.out.println("lookup new primary service: " + Peer.get().getNodeList().get(0).getIp() + ":"+Peer.get().getNodeList().get(0).getPort());
 			setPrimaryService((PlayerService) Naming.lookup(Util.getRMIStringByNode(Peer.get().getNodeList().get(0))));
 		} catch (MalformedURLException | RemoteException | NotBoundException e) {
 			e.printStackTrace();
 		}
 		if (Peer.get().getNodeList().size() >= 2) {
 			try {
+				System.out.println("lookup new secondary service: " + Peer.get().getNodeList().get(1).getIp() + ":"+Peer.get().getNodeList().get(1).getPort());
 				setSecondaryService((PlayerService) Naming.lookup(Util.getRMIStringByNode(Peer.get().getNodeList().get(1))));
 			} catch (MalformedURLException | RemoteException | NotBoundException e) {
 				e.printStackTrace();
 			}
 		} else {
 			try {
+				System.out.println("lookup new secondary service: " + Peer.get().getNodeList().get(0).getIp() + ":"+Peer.get().getNodeList().get(0).getPort());
 				setSecondaryService((PlayerService) Naming.lookup(Util.getRMIStringByNode(Peer.get().getNodeList().get(0))));
 			} catch (MalformedURLException | RemoteException | NotBoundException e) {
 				e.printStackTrace();

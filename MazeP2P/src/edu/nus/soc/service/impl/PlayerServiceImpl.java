@@ -98,6 +98,7 @@ public class PlayerServiceImpl extends UnicastRemoteObject implements PlayerServ
 	//Once a player occupies a cell, the others can not occupy the cell
 	@Override
 	public Maze move(Integer playerId, Movement m, Peer peer) throws RemoteException{
+		System.out.println("Server recieved client's move request.");
 		if (false == Maze.get().isGameStarted()) {
 			return null;
 		}
@@ -146,15 +147,38 @@ public class PlayerServiceImpl extends UnicastRemoteObject implements PlayerServ
 			if (Peer.get().isPrimaryServer()) {
 				System.out.println("######I am the primary server, synchronize secondary server.");
 				Maze.get().peer.setNodeList(Peer.get().getNodeList());
-				ClientController.getSecondaryService().synchronizeMaze(Maze.get());
+				if (Peer.get().getNodeList().size() >= 2) {
+					try {
+						if (Naming.lookup(Util.getRMIStringByNode(Peer.get().getNodeList().get(1))) != null) {
+							ClientController.getSecondaryService().synchronizeMaze(Maze.get());
+						} 
+					} catch (MalformedURLException | NotBoundException | RemoteException e) {
+						// find a new secondary server
+						System.out.println("######secondary server has crashed, select a new secondary server.");
+						Peer.get().getNodeList().remove(1);
+						while (Peer.get().getNodeList().size() >= 2) {
+							try {
+								if (Naming.lookup(Util.getRMIStringByNode(Peer.get().getNodeList().get(1))) != null) {
+									ClientController.updatePlayerService();
+									ClientController.getSecondaryService().notifySelectedAsServer(Maze.get());
+									break;
+								} 
+							} catch (MalformedURLException | NotBoundException | RemoteException e1) {
+								// TODO Auto-generated catch block
+								Peer.get().getNodeList().remove(1);
+							}
+						}
+					}
+				}
 			}
-			
+
 			//as secondary server, when movement is requested, the primary server is down at this time.
 			//we should level up secondary server as primary server and select another secondary server.
 			if (Peer.get().isSecondaryServer()) {
 				System.out.println("######I am the secondary server, primary server has crashed, level"
 						+ "up myself and select another secondary server.");
 				ServerController.levelUpToPrimaryServer();
+				Maze.get().peer.setNodeList(Peer.get().getNodeList());
 				//select a new secondary server
 				if (Peer.get().getNodeList().size() >= 2) {
 					while (Peer.get().getNodeList().size() >= 2) {
@@ -163,7 +187,7 @@ public class PlayerServiceImpl extends UnicastRemoteObject implements PlayerServ
 								//find active node
 								break;
 							}
-						} catch (MalformedURLException | NotBoundException e) {
+						} catch (MalformedURLException | NotBoundException | RemoteException e) {
 							Peer.get().getNodeList().remove(1);
 						}
 					}
@@ -173,7 +197,7 @@ public class PlayerServiceImpl extends UnicastRemoteObject implements PlayerServ
 				}
 				ClientController.updatePlayerService();
 				if (Peer.get().getNodeList().size() >= 2) {
-					ClientController.getSecondaryService().notifySelectedAsServer();
+					ClientController.getSecondaryService().notifySelectedAsServer(Maze.get());
 				}
 			}
 		
@@ -210,10 +234,12 @@ public class PlayerServiceImpl extends UnicastRemoteObject implements PlayerServ
 	}
 
 	@Override
-	public void notifySelectedAsServer() throws RemoteException {
+	public void notifySelectedAsServer(Maze maze) throws RemoteException {
 		System.out.println("this peer is selected as secondary server, update info.");
 		Peer.get().setPrimaryServer(false);
 		Peer.get().setSecondaryServer(true);
+		Peer.get().setNodeList(maze.peer.getNodeList());
+		ClientController.updatePlayerService();
 	}
 
 	private static boolean isCellOccupied(Position targetPos, int playerId) {

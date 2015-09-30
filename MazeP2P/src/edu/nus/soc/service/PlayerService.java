@@ -18,6 +18,6 @@ public interface PlayerService extends Remote{
 	//following methods are used for updating peer info
 	void synchronizeMaze(Maze maze) throws RemoteException; //used between primary server and secondary server.
 	
-	void notifySelectedAsServer() throws RemoteException;	//used by newly selected primary server, notify newly
+	void notifySelectedAsServer(Maze maze) throws RemoteException;	//used by newly selected primary server, notify newly
 															//selected secondary server
 }
